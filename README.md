@@ -15,4 +15,4 @@ OpenAI API Key, set this as an environment variable on your device
 Optional: Vectara Account, If you would like to copy the output file into a generated_answers file for evaluation with Open RAG Eval
 ### Installation
 Install the required python packages listed in the comments at the top file containing the pipeline. For Moorche it is:
-‘pip install openai moorcheh-sdk langchain_community pypdf pandas’
+'''pip install openai moorcheh-sdk langchain_community pypdf pandas'''
