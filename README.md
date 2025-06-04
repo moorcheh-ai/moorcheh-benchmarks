@@ -64,7 +64,8 @@ First Quarter 2025 Financial Highlights META PLATFORMS, INC.
 CONDENSED CONSOLIDATED STATEMENTS OF CASH FLOWS
 ```
 ## Optional: Integration with Open RAG Eval
-You can use the output file directly with [Open RAG Eval](https://github.com/vectara/open-rag-eval?tab=readme-ov-file). Simply copy the contents of the file and paste it into the answers csv file and run Open RAG eval to get an output file with all the scores.
+You can use the output file directly with [Open RAG Eval](https://github.com/vectara/open-rag-eval?tab=readme-ov-file). Simply copy and paste the contents of the file into the answers csv file in the same folder containing Open RAG Eval.
+Run Open RAG eval to get an output file with all the scores.
 Open RAG Eval uses the [UMBRELA](https://arxiv.org/pdf/2406.06519) and [AutoNuggetizer](https://arxiv.org/pdf/2411.09607) methods to score the accuarcy of the responses.
 In brief, UMBRELA uses an LLM to understand the intent behind the queries and passages and label said passages with different relevance scores [^1]. On the other hand, AutoNuggetizer is a framework that uses LLMs to analyze "nuggets", which are discrete pieces of facts drawn from either the documents or the generated answers[^2]. It compares the nuggets from documents and the nuggets from generated answers and finds matches or mismatches, which contributes to a score. Using the the output file from Open RAG Eval, you can then measure the accuracy of the AI models using their testing methodology.
 
