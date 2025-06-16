@@ -22,16 +22,15 @@ pip install openai moorcheh-sdk langchain_community pypdf pandas
 Create a csv file in the same folder that the pipeline is in to hold your queries. By default, the pipeline will look for a file named queries.csv, but you can change this in the code if your file uses a different name. A sample queries.csv file is shown below:
 ```
 query
-What is Meta’s Net Income in 2025?
-What is Netflix’s Profit in 2025?
-What is Apple’s Expenses in 2025?
-What is Alphabet’s Revenue in 2025?
-What is Amazon’s operating expenses in 2025?
-What is Alphabet’s Revenue in 2025?
-Which company had the highest revenue in the first quarter of 2025?
-Which company has seen the least growth?
-Which of the five companies showed the strongest overall financial performance in early 2025 and why?
-Compare the quarter-on-quarter revenue growth between Meta and Alphabet.
+Tesla market penetration opportunities existing markets.
+Current market share of Tesla in existing markets.
+Customer segments in existing markets for Tesla services.
+Competitive analysis of Tesla's position in existing markets. 
+Tactical recommendations for increasing Tesla's market share. 
+Indicators for Tesla's expansion into new geographic regions.
+Market readiness indicators for Tesla's existing offerings.
+Industry trends signaling opportunities for Tesla expansion.
+Competitive landscape analysis for Tesla in new geographic regions.
 ```
 ### Documents and Chunking
 Upload a document to the same folder that the pipeline is in. Set the value of the `pdf_path` variable to be the name of the document. \n
@@ -39,35 +38,25 @@ Change the chunking method in the pipeline to your desired chunking method.
 ### Running and Output
 Run the program. It should produce an output file with the `passage_id`, `query`, `generated_answer`, and `passage`. By default, the file is called `results.csv` and is found in a created `results` folder. A sample snippet of an output file is shown below:
 ```
-passage_id,query,generated_answer,passage
-0,What is Meta’s Net Income in 2025?,"Meta’s Net Income in the first quarter of 2025 is $16,644 million.","META PLATFORMS, INC.
-CONDENSED CONSOLIDATED STATEMENTS OF INCOME
-(In millions, except per share amounts)
-(Unaudited)
-Three Months Ended March 31,
-2025 2024
-Revenue $ 42,314 $ 36,455 
-Costs and expenses:
-Cost of revenue  7,572  6,640 
-Research and development  12,150  9,978 
-Marketing and sales  2,757  2,564 
-General and administrative  2,280  3,455 
-Total costs and expenses  24,759  22,637 
-Income from operations  17,555  13,818 
-Interest and other income, net  827  365 Meta Reports First Quarter 2025 Results
-MENLO PARK, Calif. – April 30, 2025  – Meta Platforms, Inc. (Nasdaq: META) today reported financial results for the 
-quarter ended March 31, 2025.
-""We've had a strong start to an important year, our community continues to grow and our business is performing very well,"" 
-said Mark Zuckerberg, Meta founder and CEO. ""We're making good progress on AI glasses and Meta AI, which now has 
-almost 1 billion monthly actives.""
-First Quarter 2025 Financial Highlights META PLATFORMS, INC.
-CONDENSED CONSOLIDATED STATEMENTS OF CASH FLOWS
-```
-## Optional: Integration with Open RAG Eval
-You can use the output file directly with [Open RAG Eval](https://github.com/vectara/open-rag-eval?tab=readme-ov-file). Simply copy and paste the contents of the file into the answers csv file in the same folder containing Open RAG Eval.
-Run Open RAG eval to get an output file with all the scores.
-Open RAG Eval uses the [UMBRELA](https://arxiv.org/pdf/2406.06519) and [AutoNuggetizer](https://arxiv.org/pdf/2411.09607) methods to score the accuarcy of the responses.
-In brief, UMBRELA uses an LLM to understand the intent behind the queries and passages and label said passages with different relevance scores [^1]. On the other hand, AutoNuggetizer is a framework that uses LLMs to analyze "nuggets", which are discrete pieces of facts drawn from either the documents or the generated answers[^2]. It compares the nuggets from documents and the nuggets from generated answers and finds matches or mismatches, which contributes to a score. Using the the output file from Open RAG Eval, you can then measure the accuracy of the AI models using their testing methodology.
+passage_id,query,generated_answers,passage
+0,Tesla market penetration opportunities existing markets.,"1. Relevance Evaluation
 
-[^1]:Lin, J., Upadhyay, S., Pradeep, R., Thakur, N., & Craswell, N. (2024, June 10). UMBRELA: UMbrela is the (Open-Source Reproduction of the) Bing RELevance Assessor. arxiv.org. https://arxiv.org/pdf/2406.06519 
-[^2]: Lin, J., Upadhyay, S., Pradeep, R., Thakur, N., Craswell, N., & Campos, D. (2024, November 14). Initial Nugget Evaluation Results for the TREC 2024 RAG Track with the AutoNuggetizer Framework. arxiv.org. https://arxiv.org/pdf/2411.09607 
+Relevance Score: 70
+
+Rationale: The context is partially related to the query about Tesla's market penetration opportunities in existing markets. It discusses Tesla's strategic considerations and market positioning, such as its focus on premium and luxury markets, and its potential growth in developing economies like India and Southeast Asia. However, it does not specifically address market penetration opportunities in existing markets, such as the U.S. or Europe, where Tesla is already established. The context also includes information about Tesla's energy storage business, which is not directly relevant to the query.
+
+2. Completeness Evaluation
+
+Completeness Score: 50
+
+Rationale: The context provides some information relevant to Tesla's market penetration opportunities, particularly in emerging markets. It highlights Tesla's strategic dilemma regarding its market focus and the potential for growth in developing economies. However, it lacks specific details about market penetration strategies or opportunities in existing markets where Tesla is already present. Key information, such as specific strategies for increasing market share or overcoming challenges in established markets, is missing.","Labor Costs and Supply Chain Economics
+Tesla’s vertically integrated model helps control some costs,
+but global labor markets still influence operations. For
+example, manufacturing in Germany involves higher labor
+costs compared to China. Yet, the proximity to European
+markets and skilled labor justifies the investment. Tesla also
+benefits from economies of scale, reducing unit costs as
+production ramps up.
+```
+## Evaluation
+To evaluate the relevance and completeness scores of the AI models, it is recommended that you paste the scores into a spreadsheet
