@@ -14,18 +14,22 @@ from openai import OpenAI
 from moorcheh_sdk import MoorchehClient
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from google import genai
+import time
 
+genai_client = genai.Client(api_key="AIzaSyC87lSZT2G-66dxnHz9xljWwIcprf79iHU")
+# 
 # --- Configuration ---
 OPENAI_API_KEY = "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"  # Input your OpenAI API key here
-MOORCHEH_API_KEY = "53IvprTTb02wRA4TyWWSM1Sv0ThkJ0ZU1PJGJHTD"  # Input your Moorcheh API key here
+MOORCHEH_API_KEY = "spEC1UErKk7bc8kPUtLkoYX00GNSe3J9ofaM3p6a"  # Input your Moorcheh API key here
 os.environ["MOORCHEH_API_KEY"] = MOORCHEH_API_KEY # Set Moorcheh key in environment
 
-pdf_path = "CombinedDoc.pdf"  # Path to your PDF document
+pdf_path = "merged-pdf.pdf"  # Path to your PDF document
 query_csv_path = "queries.csv" # Path to your CSV file with queries
 output_csv_path = "results/results.csv" # Where to save the results
 
 # --- Initialize Clients ---
-openai_client = OpenAI(api_key=OPENAI_API_KEY) # Connect to OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY) # Connect to OpenAI
 moorcheh_client = MoorchehClient() # Connect to Moorcheh vector database
 
 # --- Load and Chunk PDF ---
@@ -36,7 +40,7 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120) # S
 chunks = splitter.split_documents(pages) # Divide PDF pages into chunks
 
 # --- Create Moorcheh Namespace ---
-namespace_name = "your-name" # Set the name for your new namespace
+namespace_name = "rag_docs" # Set the name for your new namespace
 # moorcheh_client.create_namespace(namespace_name= namespace_name, type="text") # Create a text-based namespace for your data in Moorcheh
 
 # --- Upload Chunks to Moorcheh ---
@@ -47,6 +51,7 @@ for i, chunk in enumerate(chunks): # Go through each text chunk
         "text": text, # The actual text content
         "metadata": {"source": "pdf", "chunk_index": i} # Extra info about the chunk
     }
+    time.sleep(0.2)
     moorcheh_client.upload_documents(namespace_name=namespace_name, documents=[document]) # Upload chunk to Moorcheh
 
 # --- Retrieval Function ---
@@ -62,19 +67,45 @@ def retrieve_context(query, k=5): # Function to find relevant text for a query
 # --- Generation Function ---
 def generate_passage(query): # Function to create an answer from context
     context = retrieve_context(query) # Get relevant info for the question
-    prompt = prompt = f"""Answer the following 3 questions: Provide a score between 0 - 100 to rate the the relatedness of the contex to the query with 0 being no relatedness and 100 being completely related. Could you reasonably answer the query with the context? ( 0 if no, 1 if yes). Provide a rationale for each of the scores.
+    prompt = f"""Answer the two following questions based on the retrived passages provided from each query.      1. Relevance Evaluation
+Does the retrieved context directly pertain to the topic and scope of the query?
+
+Provide a relevance score between 0 and 100, where:
+
+100 = The context is entirely focused on the query’s subject
+
+50 = The context is partially related (e.g. correct company but wrong financial quarter)
+
+0 = The context is topically unrelated to the query
+
+Rationale:
+Briefly explain what aspects of the context are topically aligned with the query. If the context includes off-topic information, describe it.
+
+2. Completeness Evaluation
+If someone were to answer the query using only this context, how complete and sufficient would their answer be?
+
+Provide a completeness score between 0 and 100, where:
+
+100 = The context includes all necessary information to fully answer the query
+
+50 = The context includes some, but not all, key information (e.g., only Q1 revenue when the query asks for full-year revenue)
+
+0 = The context includes none of the necessary information to answer the query
+
+Rationale:
+Clearly state whether the context contains the required facts, figures, or explanations needed to construct a complete answer. If any crucial components are missing, specify what they are.
 
 Context:
 {chr(10).join(context)}
 
 Question: {query}
-Answer:""" # Build the prompt for OpenAI
-    response = openai_client.chat.completions.create( # Ask OpenAI to generate an answer
-        model="gpt-4o", # Using the GPT-4o model
-        messages=[{"role": "user", "content": prompt}], # Your question for the AI
-        temperature=0.2 # How creative the AI should be (lower is less creative)
+Answer:"""
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
     )
-    return response.choices[0].message.content, context # Return the AI's answer and the context used
+    return response.choices[0].message.content, context
 
 # --- Read Queries and Generate Results ---
 queries_df = pd.read_csv(query_csv_path) # Load your questions from a CSV file
