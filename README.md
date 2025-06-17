@@ -33,7 +33,7 @@ Industry trends signaling opportunities for Tesla expansion.
 Competitive landscape analysis for Tesla in new geographic regions.
 ```
 ### Documents and Chunking
-Upload a document to the same folder that the pipeline is in. Set the value of the `pdf_path` variable to be the name of the document. \n
+Upload a document to the same folder that the pipeline is in. Set the value of the `pdf_path` variable to be the name of the document. 
 Change the chunking method in the pipeline to your desired chunking method.
 
 ### Prompt
