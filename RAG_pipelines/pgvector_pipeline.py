@@ -2,31 +2,34 @@
 # This guide walks you through creating a Retrieval Augmented Generation (RAG) system using pgvector.
 
 # --- Installation ---
-# Before you begin, install these libraries using pip:
-# pip install openai langchain_community pypdf pandas psycopg2-binary python-dotenv
+# First, make sure you have these essential libraries installed.
+# You can run this command in your terminal:
+# pip install openai langchain_community pypdf pandas psycopg2-binary python-dotenv sentence-transformers google-generativeai
 
 # --- Import Libraries ---
 import os
 import csv
-import json
+import json  
 import psycopg2
 import pandas as pd
 from openai import OpenAI
-from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
+#import google.generativeai as genai  # Optional Gemini integration
 
-# --- Load API keys and environment variables from a .env file ---
+# --- Load Environment Variables ---
 load_dotenv()
 
 # --- Configuration ---
 # Set your OpenAI API key
-OPENAI_API_KEY = "your-openai-apikey"  # Replace with your OpenAI API key
-openai_client = OpenAI(api_key=OPENAI_API_KEY)  # Initialize OpenAI client
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"] # Replace with your OpenAI API key
+openai_client = OpenAI(api_key=OPENAI_API_KEY) # Initialize OpenAI client
 
 # Connect to your local PostgreSQL database with pgvector installed
 conn = psycopg2.connect(
-    dbname="ragdb",           # Your Postgres database name
+    dbname="your-database-name", # Your Postgres database name
     user="your-username",     # Your database username
     password="your-password", # Your password (leave blank if not needed)
     host="localhost",         # Host for local DB
@@ -34,103 +37,117 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# --- File Paths ---
-pdf_path = "path-to-your-pdf.pdf"            # Input PDF file with source knowledge
-query_csv_path = "your-query-file.csv"       # CSV containing user queries
-output_csv_path = "results/results.csv"      # Where to store final results
+# --- File paths ---
+pdf_path = "your-pdf-path.pdf"                   # Input PDF path
+query_csv_path = "your-query-file.csv"           # CSV with input queries
+output_csv_path = "results/results.csv"          # Output CSV path
+queries_df = pd.read_csv(query_csv_path)
 
 # --- Load and Chunk PDF ---
-loader = PyPDFLoader(pdf_path)               # Load PDF using LangChain's PyPDFLoader
-pages = loader.load()                        # Get all the pages as documents
-
-# Split the documents into manageable chunks
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,        # Max characters per chunk
-    chunk_overlap=50       # Overlap to preserve context between chunks
-)
-chunks = splitter.split_documents(pages)     # Apply chunking
+loader = PyPDFLoader(pdf_path)
+pages = loader.load()
+splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120)
+chunks = splitter.split_documents(pages)
 
 # --- Generate Embeddings and Upload Chunks to pgvector ---
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
 def get_embedding(text):
-    # Use OpenAI to convert text into dense vector embedding
-    response = openai_client.embeddings.create(
-        model="text-embedding-3-small",  
-        input=text
-    )
-    return response.data[0].embedding
+    return embedder.encode(text).tolist()
 
 # Loop through each chunk and insert it into the database
 for i, chunk in enumerate(chunks):
-    text = chunk.page_content.strip()  # Clean the chunk text
-    embedding = get_embedding(text)    # Convert chunk into embedding
+    text = chunk.page_content.strip()
+    embedding = get_embedding(text)
 
-    # Insert into your rag_chunks table (must have columns: chunk_index, content, embedding, metadata)
+# Insert into your "table" (must have columns: chunk_index, content, embedding, metadata)
     cursor.execute(
-        "INSERT INTO rag_chunks (chunk_index, content, embedding, metadata) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO table (chunk_index, content, embedding, metadata) VALUES (%s, %s, %s, %s)",
         (i, text, embedding, json.dumps({"source": "pdf", "chunk_index": i}))
     )
 
-conn.commit()  # Save all inserted rows
+conn.commit() # Save all inserted rows
 
 # ---  Retrieval Function ---
 def retrieve_context(query, k=5):
     embedding = get_embedding(query)
-
     vector_str = f"[{','.join(map(str, embedding))}]"
-
-    # Use pgvector's operator to find the top-k most similar chunks
     cursor.execute(
-        f"SELECT content FROM rag_chunks ORDER BY embedding <=> %s LIMIT %s",
+        "SELECT content FROM table ORDER BY embedding <=> %s LIMIT %s",
         (vector_str, k)
     )
-
-    # Return just the text content of the top-k chunks
     return [row[0] for row in cursor.fetchall()]
 
-# --- Answer Generation Function ---
-def generate_passage(query):
-    # Retrieve relevant chunks from the vector database
-    context = retrieve_context(query)
+# --- Generation Function ---
 
-    # Construct a prompt that feeds the context + query to the LLM
-    prompt = f"""Answer the question using the provided context.
+# For Gemini integration:
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
+
+def generate_answer(query):
+    context = retrieve_context(query)
+    context_text = "\n\n".join(context)
+
+    prompt = f"""Answer the two following questions based on the retrieved passages provided from each query.
+
+1. Relevance Evaluation  
+Does the retrieved context directly pertain to the topic and scope of the query?
+
+Provide a relevance score between 0 and 100, where:
+
+100 = The context is entirely focused on the query's subject  
+50 = The context is partially related (e.g. correct company but wrong financial quarter)  
+0 = The context is topically unrelated to the query
+
+Rationale:  
+Briefly explain what aspects of the context are topically aligned with the query. If the context includes off-topic information, describe it.
+
+2. Completeness Evaluation  
+If someone were to answer the query using only this context, how complete and sufficient would their answer be?
+
+Provide a completeness score between 0 and 100, where:
+
+100 = The context includes all necessary information to fully answer the query  
+50 = The context includes some, but not all, key information  
+0 = The context includes none of the necessary information
+
+Rationale:  
+Clearly state whether the context contains the required facts, figures, or explanations needed to construct a complete answer. If any crucial components are missing, specify what they are.
 
 Context:
-{chr(10).join(context)}
+{context_text}
 
-Question: {query}
-Answer:"""
+Query: {query}
+Answer:
+"""
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
 
-    # Ask OpenAI GPT-4o to generate a response based on the context
+    # --- For GPT generation ---
     response = openai_client.chat.completions.create(
-        model="gpt-4o",  # You can use gpt-4, gpt-3.5-turbo, etc.
+        model="gpt-4o",  # You can change to gpt-3.5-turbo
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.2  # Lower temperature = more factual, less creative
+        temperature=0
     )
-
-    # Return the model's response + context used
     return response.choices[0].message.content, context
 
 # --- Read Queries and Generate Results ---
-# Read the list of questions from your CSV
-queries_df = pd.read_csv(query_csv_path)
-os.makedirs("results", exist_ok=True)  # Create output folder if it doesn't exist
+queries_df = pd.read_csv(query_csv_path)  # Read queries from the specified CSV file
+os.makedirs("results", exist_ok=True)
 
-# Open a new CSV to store the generated answers
-with open(output_csv_path, "w", newline="") as f:
-    writer = csv.DictWriter(f, fieldnames=["passage_id", "query", "generated_answer", "passage"])
-    writer.writeheader()  # Write column headers
+with open(output_csv_path, "w", newline="") as f: # Open a new CSV to store the generated answers
+    writer = csv.DictWriter(f, fieldnames=["query", "generated_answer", "passage"])
+    writer.writeheader()
 
-    # Loop through each query and generate a response
-    for idx, q in enumerate(queries_df["query"]):
-        print(f"Processing: {q}")
+    for q in queries_df["query"]:
         try:
-            answer, context = generate_passage(q)  # Run the pipeline
+            print(f"Processing: {q}")
+            answer, context = generate_answer(q) # Generate a score for the query
             writer.writerow({
-                "passage_id": idx,
                 "query": q,
                 "generated_answer": answer,
-                "passage": "".join(context)  # Join context into one string
+                "passage": "\n\n====================\n\n".join(context) # Join passages with separator
             })
         except Exception as e:
-            print(f"Error for query '{q}':", e)  # Show any runtime errors
+            print(f"Error for query '{q}':", e)
