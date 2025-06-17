@@ -14,22 +14,12 @@ from openai import OpenAI
 from moorcheh_sdk import MoorchehClient
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-<<<<<<< HEAD
-from google import genai
 import time
-
-genai_client = genai.Client(api_key="AIzaSyC87lSZT2G-66dxnHz9xljWwIcprf79iHU")
-# 
-# --- Configuration ---
-OPENAI_API_KEY = "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"  # Input your OpenAI API key here
-MOORCHEH_API_KEY = "spEC1UErKk7bc8kPUtLkoYX00GNSe3J9ofaM3p6a"  # Input your Moorcheh API key here
-=======
 from sentence_transformers import SentenceTransformer  # Optional: Can be used for embedding
 
 #--- Configuration ---
 OPENAI_API_KEY = "your-openai-apikey"  # Input your OpenAI API key here
 MOORCHEH_API_KEY = "your-moorcheh-apikey"  # Input your Moorcheh API key here
->>>>>>> 2919ac9171e7d8ce400afb8253a6704baafe71d7
 os.environ["MOORCHEH_API_KEY"] = MOORCHEH_API_KEY # Set Moorcheh key in environment
 
 pdf_path = "merged-pdf.pdf"  # Path to your PDF document
@@ -61,12 +51,8 @@ for i, chunk in enumerate(chunks): # Go through each text chunk
         "text": text, # The actual text content
         "metadata": {"source": "pdf", "chunk_index": i} # metadata
     }
-<<<<<<< HEAD
     time.sleep(0.2)
     moorcheh_client.upload_documents(namespace_name=namespace_name, documents=[document]) # Upload chunk to Moorcheh
-=======
-    documents.append(doc)
->>>>>>> 2919ac9171e7d8ce400afb8253a6704baafe71d7
 
 # Batch Upload the pdf
 batch_size = 15
@@ -102,7 +88,6 @@ def generate_answer(query): # Function to create an answer from context
     f"[Score: {round(ctx['score'], 3)}]\n{ctx['text']}" for ctx in context_with_scores
     )
 
-<<<<<<< HEAD
 # --- Generation Function ---
 def generate_passage(query): # Function to create an answer from context
     context = retrieve_context(query) # Get relevant info for the question
@@ -133,32 +118,18 @@ Provide a completeness score between 0 and 100, where:
 
 Rationale:
 Clearly state whether the context contains the required facts, figures, or explanations needed to construct a complete answer. If any crucial components are missing, specify what they are.
-=======
-    prompt = f"""Answer the following question using the provided context.
-Each passage is prefixed with its relevance score.
->>>>>>> 2919ac9171e7d8ce400afb8253a6704baafe71d7
 
 Context:
 {context_text}
 
 Question: {query}
 Answer:"""
-<<<<<<< HEAD
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
     )
     return response.choices[0].message.content, context
-=======
-
-    response = openai_client.chat.completions.create( # Ask OpenAI to generate an answe
-        model="gpt-4o", # Using the GPT-4o model
-        messages=[{"role": "user", "content": prompt}], # Your question for the AI
-        temperature=0.2 # How creative the AI should be (lower is less creative)
-    )
-    return response.choices[0].message.content, [ctx['text'] for ctx in context_with_scores]
->>>>>>> 2919ac9171e7d8ce400afb8253a6704baafe71d7
 
 #--- Run All Queries and Save Results ---
 queries_df = pd.read_csv(query_csv_path) # Load your questions from a CSV file
