@@ -147,7 +147,7 @@ with open(output_csv_path, "w", newline="") as f:
                 "passage_id": counter,
                 "query": q,
                 "generated_answer": answer,
-                "passage": " ".join(context)
+                "passage": "\n\n====================\n\n".join(context)
             })
         except Exception as e:
             print(f"Error for query '{q}':", e)

@@ -171,7 +171,7 @@ with open(output_csv_path, "w", newline="", encoding="utf-8") as f:
                 "passage_id": counter,
                 "query": q,
                 "generated_answer": answer,
-                "passage": " ".join(context)
+                "passage": "\n\n====================\n\n".join(context)
             })
             counter += 1
         except Exception as e:
