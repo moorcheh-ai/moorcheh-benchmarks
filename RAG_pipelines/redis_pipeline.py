@@ -4,7 +4,7 @@
 #--- Installation ---
 # First, make sure you have these essential libraries installed.
 # You can run this command in your terminal:
-# pip install openai redis redisvl langchain_community pypdf pandas
+# pip install openai redis redisvl langchain_community pypdf pandas google-generativeai
 
 #--- Import Libraries ---
 import os
@@ -19,6 +19,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from redis.commands.search.query import Query
 from redis.commands.search.field import TextField, VectorField
+import google.generativeai as genai   # Optional, for future integration with Gemini
 import redis
 
 # --- CONFIG ---
@@ -44,13 +45,13 @@ r = redis.Redis(
     decode_responses=False,
     ssl=False) 
 
-# Delete old index if exists
+# --- Delete old index if exists ---
 try:
     r.ft(INDEX_NAME).dropindex(delete_documents=True)
 except:
     pass
 
-# Create index
+# --- Create index ---
 r.ft(INDEX_NAME).create_index([
     redis.commands.search.field.TextField("text"),
     redis.commands.search.field.VectorField(
@@ -67,7 +68,7 @@ r.ft(INDEX_NAME).create_index([
 # --- Load and Embed Documents ---
 loader = PyPDFLoader(pdf_path)
 pages = loader.load()
-splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120)
 chunks = splitter.split_documents(pages)
 
 for i, chunk in enumerate(chunks):
@@ -84,15 +85,47 @@ def retrieve_context(query, k=TOP_K):
     return [doc.text for doc in results.docs] or ["[No context retrieved]"]
 
 # --- Answer Generation ---
+
+#For Gemini integration:
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
+
 def generate_answer(query):
     context = retrieve_context(query)
-    prompt = f"""Answer the following question using the provided context.
+    prompt = f"""Answer the two following questions based on the retrieved passages provided from each query.
+
+1. Relevance Evaluation  
+Does the retrieved context directly pertain to the topic and scope of the query?
+
+Provide a relevance score between 0 and 100, where:
+100 = The context is entirely focused on the query’s subject  
+50 = The context is partially related (e.g., correct company but wrong financial quarter)  
+0 = The context is topically unrelated to the query
+
+Rationale:  
+Briefly explain what aspects of the context are topically aligned with the query. If the context includes off-topic information, describe it.
+
+2. Completeness Evaluation  
+If someone were to answer the query using only this context, how complete and sufficient would their answer be?
+
+Provide a completeness score between 0 and 100, where:
+100 = The context includes all necessary information to fully answer the query  
+50 = The context includes some, but not all, key information  
+0 = The context includes none of the necessary information
+
+Rationale:  
+Clearly state whether the context contains the required facts, figures, or explanations needed to construct a complete answer. If any crucial components are missing, specify what they are.
 
 Context:
 {chr(10).join(context)}
 
 Question: {query}
 Answer:"""
+    
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
+    
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],

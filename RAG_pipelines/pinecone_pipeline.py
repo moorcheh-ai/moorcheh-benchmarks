@@ -1,3 +1,12 @@
+# Build your own powerful RAG pipeline!
+# This guide walks you through creating a Retrieval Augmented Generation (RAG) system with Pinecone.
+
+# --- Installation ---
+# First, make sure you have these essential libraries installed.
+# You can run this command in your terminal:
+# pip install pinecone openai sentence-transformers langchain-community pypdf pandas google-generativeai 
+
+# --- Import Libraries ---
 import os
 import csv
 import pandas as pd
@@ -6,9 +15,11 @@ from pinecone import Pinecone, ServerlessSpec
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
+import google.generativeai as genai   # Optional, for future integration with Gemini
 import time
 
-# Set up API keys and config
+# --- Configuration ---
+# Set the API keys securely using environment variables
 OPENAI_API_KEY = "Your-OpenAI-Key"  # Replace this
 PINECONE_API_KEY = "Your-Pinecone-Key"  # Replace this
 PINECONE_ENV = "us-east-1"  # Change this to your environment
@@ -23,7 +34,7 @@ output_csv_path = "results/results.csv"
 
 loader = PyPDFLoader(pdf_path)
 pages = loader.load()
-splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120)
 chunks = splitter.split_documents(pages)
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
@@ -48,7 +59,7 @@ try:
 except Exception as e:
     print("Index clear skipped:", e)
 
-# Insert documents into Pinecone
+# --- Insert documents into Pinecone ---
 for i, chunk in enumerate(chunks):
     text = chunk.page_content.strip()
     emb = embedder.encode(text).tolist()
@@ -58,13 +69,17 @@ for i, chunk in enumerate(chunks):
         "metadata": {"text": text}
     }])
 
-# Retrieval function
+# --- Retrieval function ---
 def retrieve_context(query, k=5):
     query_emb = embedder.encode(query).tolist()
     results = index.query(vector=query_emb, top_k=k, include_metadata=True)
     return [match["metadata"]["text"] for match in results.get("matches", [])] or ["[No context retrieved]"]
 
-# Generate answer
+# --- Generation Function ---
+
+# For Gemini integration:
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
 def generate_answer(query):
     context = retrieve_context(query)
     prompt = f"""Answer the following question using the provided context.
@@ -74,6 +89,12 @@ Context:
 
 Question: {query}
 Answer:"""
+    
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
+    
+    # --- For GPT integration ---
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
@@ -98,7 +119,7 @@ with open(output_csv_path, "w", newline="") as f:
                 "passage_id": counter,
                 "query": q,
                 "generated_answer": answer,
-                "passage": " ".join(context)
+                "passage": "\n\n====================\n\n".join(context)
             })
             counter += 1
         except Exception as e:

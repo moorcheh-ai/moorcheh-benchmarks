@@ -4,7 +4,7 @@
 #--- Installation ---
 # First, make sure you have these essential libraries installed.
 # You can run this command in your terminal:
-# pip install openai weaviate-client langchain_community pypdf pandas
+# pip install openai weaviate-client langchain_community pypdf pandas google-generativeai
 
 #--- Import Libraries ---
 import os
@@ -16,30 +16,28 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from pymilvus import connections, MilvusClient, FieldSchema, CollectionSchema, DataType, Collection
+import google.generativeai as genai   # Optional, for future integration with Gemini
 
-from google import genai
-
-# Configuration
-genai_client = genai.Client(api_key="your-api-key")
+# --- Configuration ---
 OPENAI_API_KEY = "your-API-key"
 MILVUS_COLLECTION_NAME = "rag_docs"
 pdf_path = "pdf-path"
 query_csv_path = "queries.csv"
 output_csv_path = "results/results.csv"
 
-# Connect to Milvus
+# --- Connect to Milvus ---
 connections.connect(alias="default", host="localhost", port="19530")
 client = MilvusClient(uri="http://localhost:19530")
 
-# SentenceTransformer embedder
+# --- SentenceTransformer embedder ---
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 DIM = 384  # embedding dimension
 
-# Drop existing collection if exists
+# --- Drop existing collection if exists ---
 if client.has_collection(MILVUS_COLLECTION_NAME):
     client.drop_collection(MILVUS_COLLECTION_NAME)
 
-# Define schema
+# --- Define schema ---
 fields = [
     FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False),
     FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
@@ -53,13 +51,13 @@ client.create_collection(
     consistency_level="Strong"
 )
 
-# Load PDF and split into chunks
+# --- Load PDF and split into chunks ---
 loader = PyPDFLoader(pdf_path)
 pages = loader.load()
 splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120)
 chunks = splitter.split_documents(pages)
 
-# Prepare insertion data as a list of dictionaries
+# --- Prepare insertion data as a list of dictionaries ---
 data_to_insert = []
 for i, chunk in enumerate(chunks):
     text = chunk.page_content.strip()
@@ -71,15 +69,13 @@ for i, chunk in enumerate(chunks):
         "embedding": vector
     })
 
-# Insert data into Milvus
+# --- Insert data into Milvus ---
 client.insert(
     collection_name=MILVUS_COLLECTION_NAME,
     data=data_to_insert
 )
 
-# ------------------------
-# Create Index (Fixed Version)
-# ------------------------
+# --- Create Index ---
 collection = Collection(name=MILVUS_COLLECTION_NAME)
 
 collection.create_index(
@@ -93,7 +89,7 @@ collection.create_index(
 
 collection.load()
 
-# Retrieval function
+# --- Retrieval function ---
 def retrieve_context(query, k=5):
     query_emb = embedder.encode(query)
     query_emb = [float(x) for x in query_emb]
@@ -107,8 +103,12 @@ def retrieve_context(query, k=5):
     )
     return [hit.entity.get("text") + " [] " for hit in results[0]] if results[0] else ["[No context retrieved]"]
 
-# OpenAI client for answer generation
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+# --- OpenAI client for answer generation ---
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+#For Gemini integration:
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
 
 def generate_answer(query):
     context = retrieve_context(query)
@@ -144,22 +144,18 @@ Context:
 Question: {query}
 Answer:"""
 
-    """
-    response = openai_client.chat.completions.create(
-        model="gpt-4o",
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
+
+    # --- For GPT integration ---
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
+        temperature=0
     )
-    return response.choices[0].message.content, context
-    """
 
-    response = genai_client.models.generate_content(
-        model="gemini-2.5-pro-preview-06-05",
-        contents=prompt
-    )
-    return response.text, context
-
-# Run evaluation loop
+# --- Run evaluation loop ---
 queries_df = pd.read_csv(query_csv_path)
 os.makedirs("results", exist_ok=True)
 
