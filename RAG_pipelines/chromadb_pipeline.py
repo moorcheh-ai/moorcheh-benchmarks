@@ -92,6 +92,11 @@ Context:
 Question: {query}
 Answer:"""
 
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
+    
+    # --- For GPT integration ---
     response = client.chat.completions.create(
         model="gpt-4o-mini",  # Specify the OpenAI model to use
         messages=[{"role": "user", "content": prompt}],  # Pass the prompt as a user message
