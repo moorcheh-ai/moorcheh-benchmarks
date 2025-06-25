@@ -81,7 +81,12 @@ def retrieve_context(query, k=top_k):
         for m in matches
     ]
 
-#--- Generation Function ---
+# --- Generation Function ---
+
+# For Gemini integration:
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
+
 def generate_answer(query): # Function to create an answer from context
     context_with_scores = retrieve_context(query) # Get relevant info for the question
     context_text = "\n\n".join(
@@ -124,6 +129,12 @@ Context:
 
 Question: {query}
 Answer:"""
+    
+    # --- For Gemini integration ---
+    # response = model.generate_content(prompt)
+    # return response.text, context
+    
+    # --- For GPT integration ---
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
