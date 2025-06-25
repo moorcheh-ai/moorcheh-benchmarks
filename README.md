@@ -22,13 +22,10 @@ pip install openai moorcheh-sdk langchain_community pypdf pandas
 Create a csv file in the same folder that the pipeline is in to hold your queries. By default, the pipeline will look for a file named queries.csv, but you can change this in the code if your file uses a different name. A sample queries.csv file is shown below:
 ```
 query
-Tesla market penetration opportunities existing markets.
-Current market share of Tesla in existing markets.
 Customer segments in existing markets for Tesla services.
 Competitive analysis of Tesla's position in existing markets. 
 Tactical recommendations for increasing Tesla's market share. 
 Indicators for Tesla's expansion into new geographic regions.
-Market readiness indicators for Tesla's existing offerings.
 Industry trends signaling opportunities for Tesla expansion.
 Competitive landscape analysis for Tesla in new geographic regions.
 ```
