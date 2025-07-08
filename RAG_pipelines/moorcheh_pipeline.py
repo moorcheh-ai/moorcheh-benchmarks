@@ -18,9 +18,8 @@ import time
 from sentence_transformers import SentenceTransformer  # Optional: Can be used for embedding
 
 #--- Configuration ---
-OPENAI_API_KEY = "your-openai-apikey"  # Input your OpenAI API key here
-MOORCHEH_API_KEY = "your-moorcheh-apikey"  # Input your Moorcheh API key here
-os.environ["MOORCHEH_API_KEY"] = MOORCHEH_API_KEY # Set Moorcheh key in environment
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]  # Set OpenAI API key in environment
+MOORCHEH_API_KEY = os.environ["MOORCHEH_API_KEY"] # Set Moorcheh API key in environment
 
 pdf_path = "merged-pdf.pdf"  # Path to your PDF document
 query_csv_path = "queries.csv" # Path to your CSV file with queries
@@ -29,7 +28,7 @@ top_k = 5  # Number of documents to retrieve
 
 # --- Initialize Clients ---
 client = OpenAI(api_key=OPENAI_API_KEY) # Connect to OpenAI
-moorcheh_client = MoorchehClient() # Connect to Moorcheh vector database
+moorcheh_client = MoorchehClient(api_key=MOORCHEH_API_KEY, base_url="https://wnc4zvnuok.execute-api.us-east-1.amazonaws.com/v1") # Connect to Moorcheh vector database
 
 # --- Load and Chunk PDF ---
 loader = PyPDFLoader(pdf_path) # Load your PDF file
@@ -39,20 +38,19 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120) # S
 chunks = splitter.split_documents(pages) # Divide PDF pages into chunks
 
 # --- Create Moorcheh Namespace ---
-namespace_name = "rag_docs" # Set the name for your new namespace
-# moorcheh_client.create_namespace(namespace_name= namespace_name, type="text") # Create a text-based namespace for your data in Moorcheh
+namespace_name = "new_namespace1184" # Set the name for your new namespace
+moorcheh_client.create_namespace(namespace_name=namespace_name, type="text") # Create a text-based namespace for your data in Moorcheh
 
 #--- Upload Chunks with Metadata to Moorcheh ---
 documents = []
 for i, chunk in enumerate(chunks): # Go through each text chunk
     text = chunk.page_content.strip() # Get the text from the chunk
-    doc = { # Prepare chunk for Moorcheh
+    documents.append({ # Prepare chunk for Moorcheh
         "id": f"chunk_{i}", # Unique ID for each chunk
         "text": text, # The actual text content
         "metadata": {"source": "pdf", "chunk_index": i} # metadata
-    }
-    time.sleep(0.2)
-    moorcheh_client.upload_documents(namespace_name=namespace_name, documents=[document]) # Upload chunk to Moorcheh
+    })
+
 
 # Batch Upload the pdf
 batch_size = 15
@@ -87,15 +85,13 @@ def retrieve_context(query, k=top_k):
 # genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 # model = genai.GenerativeModel("gemini-2.5-pro-preview-06-05")
 
-def generate_answer(query): # Function to create an answer from context
-    context_with_scores = retrieve_context(query) # Get relevant info for the question
-    context_text = "\n\n".join(
-    f"[Score: {round(ctx['score'], 3)}]\n{ctx['text']}" for ctx in context_with_scores
-    )
 
 # --- Generation Function ---
 def generate_passage(query): # Function to create an answer from context
     context = retrieve_context(query) # Get relevant info for the question
+    context_text = "\n\n".join(
+    f"[Score: {round(ctx['score'], 3)}]\n{ctx['text']}" for ctx in context
+    )
     prompt = f"""Answer the two following questions based on the retrived passages provided from each query.      1. Relevance Evaluation
 Does the retrieved context directly pertain to the topic and scope of the query?
 
@@ -140,8 +136,7 @@ Answer:"""
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
     )
-    return response.choices[0].message.content, context
-
+    return response.choices[0].message.content, context_text
 #--- Run All Queries and Save Results ---
 queries_df = pd.read_csv(query_csv_path) # Load your questions from a CSV file
 os.makedirs("results", exist_ok=True) # Create a folder for results if it doesn't exist
@@ -154,12 +149,12 @@ with open(output_csv_path, "w", newline="") as f: # Open the results CSV file
     for idx, q in enumerate(queries_df["query"]): # Go through each question
         print(f"Processing: {q}") # Show which question is being processed
         try:
-            passage, context = generate_answer(q) # Get AI's answer and context
+            passage, context = generate_passage(q) # Get AI's answer and context
             writer.writerow({ # Write the results to the CSV
                 "passage_id": idx, # Unique ID for this answer
                 "query": q, # The original question
                 "generated_answers": passage, # The AI-generated answer
-                "passage": " ".join(context) # All contexts used, joined into one string
+                "passage": "".join(context) # All contexts used, joined into one string
             })
         except Exception as e: # If something goes wrong
             print(f"Error for query '{q}':", e) # Print the error
