@@ -1,4 +1,4 @@
-# Moorche Benchmarks
+# Moorcheh Benchmarks
 
 **Evaluate and compare semantic search accuracy of Moorche and other AI models.**
 
