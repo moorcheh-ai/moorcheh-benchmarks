@@ -38,7 +38,7 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=120) # S
 chunks = splitter.split_documents(pages) # Divide PDF pages into chunks
 
 # --- Create Moorcheh Namespace ---
-namespace_name = "new_namespace1184" # Set the name for your new namespace
+namespace_name = "new_namespace" # Set the name for your new namespace
 moorcheh_client.create_namespace(namespace_name=namespace_name, type="text") # Create a text-based namespace for your data in Moorcheh
 
 #--- Upload Chunks with Metadata to Moorcheh ---
