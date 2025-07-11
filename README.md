@@ -145,3 +145,5 @@ Key Controls in the Evaluation:
 
 ## Results
 The results of our experiment show that Moorcheh scores the highest in relevance and completeness overall. It especially excels in more difficult, comprehensive questions like the query "Indicators for Tesla's expansion into new geographic regions". We recommend that you paste all your results from the results.csv file into a spreadsheet like Excel or Google Sheets for ease of comparison and creating graphs to display the data. We have a report based on our experiment in a [discussion post](https://github.com/mjfekri/moorche-benchmarks/discussions/3). Feel free to change the queries, documents, chunking methods, and prompts to fit your own experiments.
+
+You can also watch a full walkthrough of the benchmark setup and results on our [YouTube](https://www.youtube.com/watch?v=c4WAoOlgzBQ). 
