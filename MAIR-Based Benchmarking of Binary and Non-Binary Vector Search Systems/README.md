@@ -66,12 +66,18 @@ You must provide API keys via Google Colab Secrets or Environment Variables:
 
 ## **How to Use**
 
-1.  **Setup:** Open the Colab notebook and mount Google Drive (handled in the first cell).
-2.  **Data Prep:** Run the **Dataset Download** section to fetch and combine MAIR/BEIR data.
-3.  **Select Benchmark:**
+1.  **Notebook Setup:**
+    * Download the file `MAIR-Based Benchmarking of Binary and Non-Binary Vector Search Systems.ipynb` from this repository.
+    * Upload the file to **Google Colab** (File > Upload notebook).
+2.  **Configure Secrets:**
+    * In the Google Colab sidebar, click the **Secrets** icon (🔑).
+    * Add your API keys (e.g., `COHERE_API_KEY`, `PINECONE_API_KEY`) as new secrets.
+    * **Important:** Toggle "Notebook access" to enabled for each secret so the script can read them.
+3.  **Data Prep:** Run the **Dataset Download** section to fetch and combine MAIR/BEIR data (Google Drive will be mounted automatically).
+4.  **Select Benchmark:**
     * **Binary Benchmarking:** Choose datasets and providers. The script will generate embeddings, binarize them, upload them to the selected DBs, and run search tests.
     * **Non-Binary Benchmarking:** Similar workflow using standard float embeddings, with optional reranking steps.
-4.  **Analyze Results:**
+5.  **Analyze Results:**
     * Real-time logs show upload/search speeds.
     * Final results are summarized in ASCII tables and saved to CSV files in your Google Drive (e.g., `MAIR.PGVector.Binary.Cohere.V4.csv`).
 
@@ -88,4 +94,4 @@ You must provide API keys via Google Colab Secrets or Environment Variables:
 
 ## **License**
 
-This benchmarking suite is provided for research and experimentation purposes. Please adhere to the usage policies of the individual service providers (Cohere, Pinecone, Moorcheh) and the licenses of the datasets used (MAIR/BEIR).
+This benchmarking suite is provided for research and experimentation purposes. Please adhere to the usage policies of the individual service providers (Cohere, Pinecone, Moorcheh) and the licenses of the datasets used (MAIR/BEIR).s
