@@ -1,10 +1,10 @@
-# **MAIR-Based Benchmarking of Binary and Non-Binary Vector Search Systems**
+# **MAIR-Based Benchmarking of Quantized and Floating-Point Vector Search Systems**
 
-This repository contains a comprehensive Google Colab workflow for benchmarking multiple vector search systems using the **MAIR (Massive AI Retrieval)** and **BEIR** datasets. It evaluates both **binary (1-bit)** and **non-binary (dense float)** vector search approaches across leading vector databases and search engines.
+This repository contains a comprehensive Google Colab workflow for benchmarking multiple vector search systems using the **MAIR (Massive AI Retrieval)** and **BEIR** datasets. It evaluates both **binary (1-bit)** and **Floating-Point(dense float)** vector search approaches across leading vector databases and search engines.
 
 The notebook provides an end-to-end pipeline for:
 * Downloading, organizing, and unifying MAIR/BEIR datasets.
-* Generating embeddings using **Cohere (v4.0)** and converting them for binary retrieval.
+* Generating embeddings using **Cohere (v4.0)** and converting them for Quantized retrieval.
 * Running systematic benchmarks across **Moorcheh**, **Pinecone**, **Elasticsearch**, and **PostgreSQL (PGVector)**.
 * Comparing latencies, retrieval quality (NDCG, MAP, Recall), storage efficiency, and indexing speed.
 
@@ -17,19 +17,19 @@ The notebook provides an end-to-end pipeline for:
 * **Processing:** Automatically organizes corpus documents, queries, and relevance judgments (qrels) into a unified directory structure within Google Drive (`docs` and `queries` folders).
 * **Category Detection:** Automatically categorizes MAIR datasets into domains (Legal, Medical, Financial, Code, etc.) for easier selection.
 
-### **2. Binary Vector Search Benchmarking**
+### **2. Quantized Vector Search Benchmarking**
 Evaluates **1-bit quantified vectors** (Sign-based Binarization: values $\ge$ 0 $\to$ 1, < 0 $\to$ 0).
 
-* **Moorcheh (Binary Mode):** Native binary vector search.
-* **Pinecone (Binary Index):** Cosine similarity on binary vectors.
-* **Elasticsearch:** Dense vector field optimization for binary data.
+* **Moorcheh (Quantized Mode):** Native Quantized vector search.
+* **Pinecone (Quantized Index):** Cosine similarity on Quantized vectors.
+* **Elasticsearch:** Dense vector field optimization for Quantized data.
 * **PGVector / PostgreSQL:**
     * Compiles `pgvector` from source within Colab to enable advanced features.
     * Uses the `BIT` data type for 32x storage compression.
     * Implements **HNSW index with Hamming distance** (`bit_hamming_ops`).
 * **Features:** Calculates storage savings (compression ratio) and exports binarized embeddings in multiple formats (`.npy`, `.csv`, `.json`, `.h5`, `.parquet`).
 
-### **3. Dense (Non-Binary) Vector Search Benchmarking**
+### **3. Dense (Floating-Point) Vector Search Benchmarking**
 Evaluates standard **float32** vector search performance.
 
 * **Moorcheh (Dense Mode):** Standard dense vector search.
@@ -67,7 +67,7 @@ You must provide API keys via Google Colab Secrets or Environment Variables:
 ## **How to Use**
 
 1.  **Notebook Setup:**
-    * Download the file `MAIR-Based Benchmarking of Binary and Non-Binary Vector Search Systems.ipynb` from this repository.
+    * Download the file `MAIR-Based Benchmarking of Quantized and Floating-Point Vector Search Systems.ipynb` from this repository.
     * Upload the file to **Google Colab** (File > Upload notebook).
 2.  **Configure Secrets:**
     * In the Google Colab sidebar, click the **Secrets** icon (🔑).
@@ -75,8 +75,8 @@ You must provide API keys via Google Colab Secrets or Environment Variables:
     * **Important:** Toggle "Notebook access" to enabled for each secret so the script can read them.
 3.  **Data Prep:** Run the **Dataset Download** section to fetch and combine MAIR/BEIR data (Google Drive will be mounted automatically).
 4.  **Select Benchmark:**
-    * **Binary Benchmarking:** Choose datasets and providers. The script will generate embeddings, binarize them, upload them to the selected DBs, and run search tests.
-    * **Non-Binary Benchmarking:** Similar workflow using standard float embeddings, with optional reranking steps.
+    * **Quantized Benchmarking:** Choose datasets and providers. The script will generate embeddings, binarize them, upload them to the selected DBs, and run search tests.
+    * **Floating-Point Benchmarking:** Similar workflow using standard float embeddings, with optional reranking steps.
 5.  **Analyze Results:**
     * Real-time logs show upload/search speeds.
     * Final results are summarized in ASCII tables and saved to CSV files in your Google Drive (e.g., `MAIR.PGVector.Binary.Cohere.V4.csv`).
